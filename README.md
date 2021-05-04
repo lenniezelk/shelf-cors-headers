@@ -17,6 +17,7 @@ import 'package:shelf/shelf_io.dart';
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 
 void main() async {
+  // optionally override default headers
   final overrideHeaders = {
     ACCESS_CONTROL_ALLOW_ORIGIN: 'example.com',
     'Content-Type': 'application/json;charset=utf-8'
