@@ -1,7 +1,7 @@
 name: shelf_cors_headers
 description: CORS headers middleware for Shelf.
-version: 0.1.0
-homepage: https://github.com/lenniezelk/shelf-cors-headers
+version: 0.1.1
+homepage: https://pub.dev/packages/shelf_cors_headers
 repository: https://github.com/lenniezelk/shelf-cors-headers
 # homepage: https://www.example.com
 environment:
