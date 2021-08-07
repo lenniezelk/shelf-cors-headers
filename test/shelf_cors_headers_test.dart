@@ -2,12 +2,22 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 import 'package:test/test.dart';
 
+const String _allowedOrigin = 'http://localhost';
+
 // Utils From shelf lib tests
 /// Makes a simple GET request to [handler] and returns the result.
-Future<Response> makeSimpleRequest(Handler handler, {String method = 'GET'}) =>
-    Future.sync(() => handler(_request(method: method)));
+Future<Response> makeSimpleRequest(
+  Handler handler, {
+  String method = 'GET',
+  String origin = _allowedOrigin,
+}) =>
+    Future.sync(() => handler(_request(method: method, origin: origin)));
 
-Request _request({String method = 'GET'}) => Request(method, localhostUri);
+Request _request({String method = 'GET', required String origin}) => Request(
+      method,
+      localhostUri,
+      headers: {ORIGIN: origin},
+    );
 
 final localhostUri = Uri.parse('http://localhost/');
 
@@ -24,7 +34,7 @@ void main() {
 
     return makeSimpleRequest(handler).then((response) {
       print(response.headers);
-      expect(response.headers[ACCESS_CONTROL_ALLOW_ORIGIN], '*');
+      expect(response.headers[ACCESS_CONTROL_ALLOW_ORIGIN], _allowedOrigin);
       expect(response.headers[ACCESS_CONTROL_EXPOSE_HEADERS], '');
       expect(response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS], 'true');
       expect(response.headers[ACCESS_CONTROL_ALLOW_METHODS],
@@ -40,7 +50,7 @@ void main() {
         const Pipeline().addMiddleware(corsHeaders()).addHandler(syncHandler);
 
     return makeSimpleRequest(handler, method: 'OPTIONS').then((response) {
-      expect(response.headers[ACCESS_CONTROL_ALLOW_ORIGIN], '*');
+      expect(response.headers[ACCESS_CONTROL_ALLOW_ORIGIN], _allowedOrigin);
       expect(response.headers[ACCESS_CONTROL_EXPOSE_HEADERS], '');
       expect(response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS], 'true');
       expect(response.headers[ACCESS_CONTROL_ALLOW_METHODS],
@@ -52,17 +62,14 @@ void main() {
   });
 
   test('user provided headers', () {
-    final headers = {
-      ACCESS_CONTROL_ALLOW_ORIGIN: 'example.com',
-      'Content-Type': 'application/json;charset=utf-8'
-    };
+    final headers = {'Content-Type': 'application/json;charset=utf-8'};
 
     var handler = const Pipeline()
         .addMiddleware(corsHeaders(headers: headers))
         .addHandler(syncHandler);
 
     return makeSimpleRequest(handler).then((response) {
-      expect(response.headers[ACCESS_CONTROL_ALLOW_ORIGIN], 'example.com');
+      expect(response.headers[ACCESS_CONTROL_ALLOW_ORIGIN], _allowedOrigin);
       expect(response.headers[ACCESS_CONTROL_EXPOSE_HEADERS], '');
       expect(response.headers[ACCESS_CONTROL_ALLOW_CREDENTIALS], 'true');
       expect(response.headers[ACCESS_CONTROL_ALLOW_METHODS],
@@ -73,5 +80,19 @@ void main() {
       expect(
           response.headers['Content-Type'], 'application/json;charset=utf-8');
     });
+  });
+
+  test('disallowed origin', () async {
+    final allowed = 'https://allowed.com';
+    final rejected = 'https://rejected.com';
+    var handler = const Pipeline()
+        .addMiddleware(corsHeaders(originChecker: originOneOf([allowed])))
+        .addHandler(syncHandler);
+
+    final response = await makeSimpleRequest(handler, origin: allowed);
+    expect(response.headers[ACCESS_CONTROL_ALLOW_ORIGIN], allowed);
+
+    final response2 = await makeSimpleRequest(handler, origin: rejected);
+    expect(response2.headers[ACCESS_CONTROL_ALLOW_ORIGIN], isNull);
   });
 }

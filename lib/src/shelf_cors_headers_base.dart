@@ -7,6 +7,8 @@ const ACCESS_CONTROL_ALLOW_HEADERS = 'Access-Control-Allow-Headers';
 const ACCESS_CONTROL_ALLOW_METHODS = 'Access-Control-Allow-Methods';
 const ACCESS_CONTROL_MAX_AGE = 'Access-Control-Max-Age';
 
+const ORIGIN = 'origin';
+
 const _defaultHeadersList = [
   'accept',
   'accept-encoding',
@@ -27,7 +29,6 @@ const _defaultMethodsList = [
 ];
 
 Map<String, String> _defaultHeaders = {
-  ACCESS_CONTROL_ALLOW_ORIGIN: '*',
   ACCESS_CONTROL_EXPOSE_HEADERS: '',
   ACCESS_CONTROL_ALLOW_CREDENTIALS: 'true',
   ACCESS_CONTROL_ALLOW_HEADERS: _defaultHeadersList.join(','),
@@ -35,31 +36,39 @@ Map<String, String> _defaultHeaders = {
   ACCESS_CONTROL_MAX_AGE: '86400',
 };
 
-Middleware corsHeaders({Map<String, String>? headers}) {
-  Response? updateRequest(Request request) {
-    var _headers = _defaultHeaders;
+final _defaultHeadersAll =
+    _defaultHeaders.map((key, value) => MapEntry(key, [value]));
 
-    if (headers != null) {
-      _headers.addAll(headers);
-    }
+typedef OriginChecker = bool Function(String origin);
 
-    if (request.method == 'OPTIONS') {
-      return Response.ok(null, headers: _headers);
-    }
+bool originAllowAll(String origin) => true;
 
-    return null;
-  }
+OriginChecker originOneOf(List<String> origins) =>
+    (origin) => origins.contains(origin);
 
-  Response updateResponse(Response response) {
-    var _headers = _defaultHeaders;
+Middleware corsHeaders({
+  Map<String, String>? headers,
+  OriginChecker originChecker = originAllowAll,
+}) {
+  final headersAll = headers?.map((key, value) => MapEntry(key, [value]));
+  return (Handler handler) {
+    return (Request request) async {
+      final origin = request.headers[ORIGIN];
+      if (origin == null || !originChecker(origin)) {
+        return handler(request);
+      }
+      final _headers = <String, List<String>>{
+        ..._defaultHeadersAll,
+        ...?headersAll,
+        ACCESS_CONTROL_ALLOW_ORIGIN: [origin],
+      };
 
-    if (headers != null) {
-      _headers.addAll(headers);
-    }
+      if (request.method == 'OPTIONS') {
+        return Response.ok(null, headers: _headers);
+      }
 
-    return response.change(headers: _headers);
-  }
-
-  return createMiddleware(
-      requestHandler: updateRequest, responseHandler: updateResponse);
+      final response = await handler(request);
+      return response.change(headers: {...response.headersAll, ..._headers});
+    };
+  };
 }
