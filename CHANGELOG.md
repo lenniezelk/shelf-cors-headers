@@ -1,3 +1,7 @@
+## 0.1.3
+
+- Update docs to make first example a bit simpler and show case `originChecker` functionality.
+
 ## 0.1.2
 
 - Bug fix where it was unusable for authenticated requests.
