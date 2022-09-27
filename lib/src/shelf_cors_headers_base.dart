@@ -68,7 +68,11 @@ Middleware corsHeaders({
       }
 
       final response = await handler(request);
-      return response.change(headers: {...response.headersAll, ..._headers});
+
+      return response.change(headers: {
+        ..._headers,
+        ...response.headersAll,
+      });
     };
   };
 }
