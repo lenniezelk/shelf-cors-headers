@@ -1,3 +1,7 @@
+## 0.1.4
+
+- Fix bug where user provided headers were being overwritten.
+
 ## 0.1.3
 
 - Update docs to make first example a bit simpler and show case `originChecker` functionality.
