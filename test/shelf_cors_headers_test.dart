@@ -120,4 +120,18 @@ void main() {
       expect(response.headers['my-custom-header'], 'other-value');
     });
   });
+
+  test('user can override "Access-Control-Allow-Origin"', () {
+    final headers = {'Access-Control-Allow-Origin': '*'};
+
+    var handler = const Pipeline()
+        .addMiddleware(corsHeaders(headers: headers))
+        .addHandler(syncHandler);
+
+    return makeSimpleRequest(handler,
+        headers: {'my-custom-header': 'other-value'}).then((response) {
+      expect(response.headers['Access-Control-Allow-Origin'], '*');
+      expect(response.headers['Vary'], 'Origin');
+    });
+  });
 }

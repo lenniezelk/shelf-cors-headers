@@ -6,6 +6,7 @@ const ACCESS_CONTROL_ALLOW_CREDENTIALS = 'Access-Control-Allow-Credentials';
 const ACCESS_CONTROL_ALLOW_HEADERS = 'Access-Control-Allow-Headers';
 const ACCESS_CONTROL_ALLOW_METHODS = 'Access-Control-Allow-Methods';
 const ACCESS_CONTROL_MAX_AGE = 'Access-Control-Max-Age';
+const VARY = 'Vary';
 
 const ORIGIN = 'origin';
 
@@ -54,14 +55,27 @@ Middleware corsHeaders({
   return (Handler handler) {
     return (Request request) async {
       final origin = request.headers[ORIGIN];
+
       if (origin == null || !originChecker(origin)) {
         return handler(request);
       }
+
       final _headers = <String, List<String>>{
         ..._defaultHeadersAll,
         ...?headersAll,
-        ACCESS_CONTROL_ALLOW_ORIGIN: [origin],
       };
+
+      final userProvidedAccessControlAllowOrigin =
+          headers?[ACCESS_CONTROL_ALLOW_ORIGIN];
+
+      if (userProvidedAccessControlAllowOrigin != null) {
+        _headers[ACCESS_CONTROL_ALLOW_ORIGIN] = [
+          userProvidedAccessControlAllowOrigin
+        ];
+        _headers[VARY] = ['Origin'];
+      } else {
+        _headers[ACCESS_CONTROL_ALLOW_ORIGIN] = [origin];
+      }
 
       if (request.method == 'OPTIONS') {
         return Response.ok(null, headers: _headers);
