@@ -1,3 +1,7 @@
+## 0.1.5
+
+- Fix bug where user could not override 'Access-Control-Allow-Origin'.
+
 ## 0.1.4
 
 - Fix bug where user provided headers were being overwritten.
